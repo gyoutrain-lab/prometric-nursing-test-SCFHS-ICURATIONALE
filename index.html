@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prometric Practice Test</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f9f9f9; padding:20px; }
+.container { max-width:720px; margin:auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 15px rgba(0,0,0,.1);}
+h1{text-align:center;}
+.question{font-weight:bold;margin-bottom:15px;}
+.options button{width:100%;padding:10px;margin:6px 0;text-align:left;border-radius:5px;border:1px solid #ccc;background:#f0f0f0;cursor:pointer;}
+.options button:hover{background:#e0e0e0;}
+.feedback{margin-top:12px;}
+.next-btn,.start-btn{margin-top:20px;padding:10px 20px;border:none;border-radius:5px;background:#007bff;color:#fff;cursor:pointer;}
+.pass{color:green;font-weight:bold;}
+.fail{color:red;font-weight:bold;}
+small{display:block;margin-top:6px;color:#333;}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1>Prometric Practice Test</h1>
+
+<div id="nameScreen">
+<label>Enter Your Name:</label>
+<input id="takerName" placeholder="Your Name">
+<button class="start-btn" id="startBtn">Start Test</button>
+</div>
+
+<div id="quiz" style="display:none;">
+<div id="question" class="question"></div>
+<div id="options" class="options"></div>
+<div id="feedback" class="feedback"></div>
+<button id="nextBtn" class="next-btn">Next</button>
+</div>
+
+<div id="result" style="display:none;">
+<h2>Test Result</h2>
+<p>Name: <span id="displayName"></span></p>
+<p>Score: <span id="scoreSpan"></span> / <span id="total"></span></p>
+<p>Unsafe Errors: <span id="unsafeCount"></span></p>
+<p id="finalResult"></p>
+</div>
+</div>
+
+<script>
+const PASS_PERCENT = 70;
+const MAX_UNSAFE = 5;
+
+const questions = [
+{q:"Septic shock patient MAP 52 after fluids. Best next step?",
+o:["Phenylephrine","Norepinephrine","Dobutamine","Vasopressin only"],
+a:1,unsafe:true,
+r:"Norepinephrine is the first-line vasopressor in septic shock to maintain MAP ≥65 after fluids."},
+
+{q:"Ventilated patient sudden high peak pressure, low tidal volume. First check?",
+o:["Chest X-ray","Tube kinking","ABG","Increase PEEP"],
+a:1,unsafe:true,
+r:"Sudden high peak pressures with low tidal volume most commonly indicate mechanical obstruction."},
+
+{q:"Post-CABG sudden hypotension, muffled heart sounds, JVP ↑. Dx?",
+o:["RV infarct","Cardiac tamponade","Septic shock","Hypovolemia"],
+a:1,unsafe:true,
+r:"Beck’s triad indicates acute cardiac tamponade."},
+
+{q:"TBI patient CPP calculation?",
+o:["ICP − MAP","MAP − ICP","SBP − DBP","CO × SV"],
+a:1,unsafe:true,
+r:"CPP = MAP − ICP and reflects cerebral perfusion."},
+
+{q:"ARDS ventilator strategy?",
+o:["High tidal volume","Low tidal volume","Zero PEEP","High RR"],
+a:1,unsafe:true,
+r:"Low tidal volume ventilation reduces ventilator-induced lung injury."},
+
+{q:"Hyperkalemia ECG peaked T waves. First drug?",
+o:["Insulin","Calcium gluconate","Albuterol","Furosemide"],
+a:1,unsafe:true,
+r:"Calcium stabilizes the myocardium and is first when ECG changes appear."},
+
+{q:"Massive PE with shock. Immediate therapy?",
+o:["IV heparin only","Thrombolysis","Diuretics","Beta-blocker"],
+a:1,unsafe:true,
+r:"Unstable PE requires immediate thrombolytic therapy."},
+
+{q:"Neuro ICU bradycardia + hypertension. Indicates?",
+o:["Vagal episode","Cushing reflex","Hypovolemia","Sepsis"],
+a:1,unsafe:true,
+r:"Cushing reflex indicates increased intracranial pressure."},
+
+{q:"DKA potassium 3.1 before insulin. Action?",
+o:["Start insulin","Give potassium first","Restrict fluids","Give bicarbonate"],
+a:1,unsafe:true,
+r:"Potassium must be corrected before insulin to prevent fatal arrhythmias."},
+
+{q:"Post-intubation hypotension cause?",
+o:["Sedation effect","PE","Stroke","MI"],
+a:0,unsafe:true,
+r:"Induction agents reduce venous return and sympathetic tone."}
+];
+
+// shuffle
+function shuffleQuestion(q){
+  const o=[...q.o], c=o[q.a];
+  for(let i=o.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [o[i],o[j]]=[o[j],o[i]];
+  }
+  return {...q,o,a:o.indexOf(c)};
+}
+
+let shuffled=questions.map(shuffleQuestion);
+let i=0,score=0,unsafeErrors=0,name="";
+
+function showQ(){
+  const q=shuffled[i];
+  question.innerText=`Q${i+1}. ${q.q}`;
+  options.innerHTML="";
+  q.o.forEach((t,x)=>{
+    const b=document.createElement("button");
+    b.innerText=String.fromCharCode(65+x)+". "+t;
+    b.onclick=()=>check(x);
+    options.appendChild(b);
+  });
+  feedback.innerHTML="";
+}
+
+function check(x){
+  const q=shuffled[i];
+  const danger=q.unsafe?"⚠️ <b>UNSAFE / CRITICAL</b><br>":"";
+  if(x===q.a){
+    feedback.innerHTML=`${danger}<span class="pass">Correct</span><small><b>Rationale:</b> ${q.r}</small>`;
+    score++;
+  } else {
+    feedback.innerHTML=`${danger}<span class="fail">Wrong</span><br>
+    <b>Correct:</b> ${q.o[q.a]}
+    <small><b>Rationale:</b> ${q.r}</small>`;
+    if(q.unsafe) unsafeErrors++;
+  }
+  nextBtn.style.display="block";
+}
+
+nextBtn.onclick=()=>{
+  i++;
+  if(i<shuffled.length){
+    showQ(); nextBtn.style.display="none";
+  } else {
+    quiz.style.display="none";
+    result.style.display="block";
+    displayName.innerText=name;
+    scoreSpan.innerText=score;
+    total.innerText=shuffled.length;
+    unsafeCount.innerText=unsafeErrors;
+
+    const percent=(score/shuffled.length)*100;
+    const pass = percent>=PASS_PERCENT && unsafeErrors<MAX_UNSAFE;
+
+    finalResult.innerHTML = pass
+      ? `<span class="pass">PASS</span>`
+      : `<span class="fail">FAIL</span>`;
+  }
+};
+
+startBtn.onclick=()=>{
+  if(!takerName.value.trim()) return alert("Enter name");
+  name=takerName.value;
+  nameScreen.style.display="none";
+  quiz.style.display="block";
+  nextBtn.style.display="none";
+  showQ();
+};
+</script>
+</body>
+</html>
